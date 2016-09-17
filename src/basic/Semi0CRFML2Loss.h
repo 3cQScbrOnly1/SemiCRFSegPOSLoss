@@ -9,7 +9,7 @@ struct Semi0CRFML2Loss{
 public:
 	int labelSize;
 	int clabelSize;
-	hash_map<int, int> f2c;
+	unordered_map<int, int> f2c;
 	vector<dtype> buffer;
 	dtype eps;
 	vector<int> maxLens;
@@ -43,7 +43,7 @@ public:
 	}
 
 public:
-	inline void initial(const vector<int>& lens, const vector<int>& clens, hash_map<int, int>& f2c_trans, int maxLength, dtype lambdaPara, int seed = 0){
+	inline void initial(const vector<int>& lens, const vector<int>& clens, unordered_map<int, int>& f2c_trans, int maxLength, dtype lambdaPara, int seed = 0){
 		labelSize = lens.size();
 		clabelSize = clens.size();
 		maxLen = maxLength;

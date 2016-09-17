@@ -10,7 +10,7 @@
 
 
 #include "N3L.h"
-#include "NNSEmbSemiCRF.h"
+#include "Driver.h"
 #include "Options.h"
 #include "Instance.h"
 #include "Example.h"
@@ -26,27 +26,22 @@ class Tagger {
 
 
 public:
-	Alphabet m_labelAlphabet;
-	Alphabet m_clabelAlphabet;
-	Alphabet m_seglabelAlphabet;
-	Alphabet m_cseglabelAlphabet;
-	hash_map<int, int> m_label_f2c;
-	hash_map<int, int> m_seg_f2c;
-	vector<int> maxLabelLength;
-	vector<int> maxcLabelLength;
-	hash_set<string> ignoreLabels;
-	hash_map<string, int> m_feat_stats;
-	hash_map<string, int> m_word_stats;
-	hash_map<string, int> m_char_stats;
-	vector<hash_map<string, int> > m_type_stats;
-	hash_map<string, int> m_seg_stats; // read it by file
+	unordered_map<int, int> m_label_f2c;
+	unordered_map<int, int> m_seg_f2c;
+
+	unordered_set<string> ignoreLabels;
+	unordered_map<string, int> m_feat_stats;
+	unordered_map<string, int> m_word_stats;
+	unordered_map<string, int> m_char_stats;
+	vector<unordered_map<string, int> > m_type_stats;
+	unordered_map<string, int> m_seg_stats; // read it by file
 
 public:
 	Options m_options;
 
 	Pipe m_pipe;
 
-	NNSEmbSemiCRF m_classifier;
+	Driver m_driver;
 
 
 public:

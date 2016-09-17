@@ -11,7 +11,7 @@ public:
 	Param CT;
 	int labelSize;
 	int clabelSize;
-	hash_map<int, int> f2c;
+	unordered_map<int, int> f2c;
 	vector<dtype> buffer;
 	dtype eps;
 	dtype lambda; // lambda * fine  + (1-lambda) * coarse
@@ -34,7 +34,7 @@ public:
 	}
 
 public:
-	inline void initial(int labelNum, int clabelNum, hash_map<int, int>& f2c_trans, dtype lambdaPara, int seed = 0){
+	inline void initial(int labelNum, int clabelNum, unordered_map<int, int>& f2c_trans, dtype lambdaPara, int seed = 0){
 		srand(seed);
 		labelSize = labelNum;
 		clabelSize = clabelNum;

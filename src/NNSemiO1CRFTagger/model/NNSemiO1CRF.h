@@ -139,7 +139,7 @@ public:
 public:
 	// some nodes may behave different during training and decode, for example, dropout
 	inline void forward(const vector<Feature>& features, bool bTrain = false){
-		clearValue(); // compute is a must step for train, predict and cost computation
+		clearValue(bTrain); // compute is a must step for train, predict and cost computation
 		int seq_size = features.size();
 
 		//forward

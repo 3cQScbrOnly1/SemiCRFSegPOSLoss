@@ -252,9 +252,7 @@ public:
 	}
 
 public:
-	LookupTable _words;
-	LookupTable _segs;
-	vector<LookupTable> _types;
+
 
 	int _wordcontext, _wordwindow;
 	int _wordDim;
