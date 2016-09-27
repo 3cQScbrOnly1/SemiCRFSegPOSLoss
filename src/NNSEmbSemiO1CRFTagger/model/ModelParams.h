@@ -50,8 +50,8 @@ public:
 			hyper_params.unitSize += hyper_params.typeDims[idx];
 		}
 
-		hyper_params.labelSize = _label_alpha.size();
-		hyper_params.clabelSize = _clabel_alpha.size();
+		hyper_params.labelSize = _loss.labelSize;
+		hyper_params.clabelSize = _loss.clabelSize;
 		hyper_params.inputSize = hyper_params.wordWindow * hyper_params.unitSize;
 
 		_tanh1_project.initial(hyper_params.hiddenSize, hyper_params.inputSize, true);

@@ -294,7 +294,6 @@ protected:
 			if (bestid == -1){
 				std::cout << "error, please debug" << std::endl;
 			}
-
 		}
 
 		return cost * lambda;
@@ -432,7 +431,6 @@ protected:
 			if (bestid == -1){
 				std::cout << "error, please debug" << std::endl;
 			}
-
 		}
 
 		return cost * (1 - lambda);
@@ -473,6 +471,7 @@ inline dtype fcost(const vector<PNode>& x, const vector<vector<dtype> >&answer, 
 					alpha_answer[idx][i] = logsumexp(buffer) + log(answer[idx][i] + eps);
 				}
 			}
+
 		}
 
 		// loss computation

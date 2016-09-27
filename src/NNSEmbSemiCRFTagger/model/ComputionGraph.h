@@ -129,7 +129,7 @@ public:
 			seg_inputs[idx].setParam(&model_params._segs);
 			seg_inputs_drop[idx].setDropValue(hyper_params.dropProb);
 			seg_hidden1[idx].setParam(&model_params._segtanh_project);
-			seg_hidden1[idx].setFunctions(&relu, &relu_deri);
+			seg_hidden1[idx].setFunctions(&tanh, &tanh_deri);
 			seg_hidden1_drop[idx].setDropValue(hyper_params.dropProb);
 			output[idx].setParam(&model_params._olayer_linear);
 			coutput[idx].setParam(&model_params._colayer_linear);
@@ -214,15 +214,6 @@ public:
 				pcoutput[idx][dist] = &coutput[offset + dist];
 			}
 		}
-
-		for (int idx = 0; idx < seq_size; idx++) {
-			offset = idx * max_seg_length;
-			for (int dist = 0; idx + dist < seq_size && dist < max_seg_length; dist++) {
-				exportNode(poutput[idx][dist]);
-				exportNode(pcoutput[idx][dist]);
-			}
-		}
-
 	}
 
 };

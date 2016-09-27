@@ -396,7 +396,6 @@ protected:
 				}
 			}
 		}
-
 		return cost * lambda;
 	}	
 	
