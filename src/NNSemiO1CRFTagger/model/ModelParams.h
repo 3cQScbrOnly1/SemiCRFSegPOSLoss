@@ -72,12 +72,6 @@ public:
 	}
 
 	void exportCheckGradParams(CheckGrad& checkgrad){
-		checkgrad.add(&(_words.E), "_words.E");
-		for (int idx = 0; idx < _types.size(); idx++){
-			stringstream ss;
-			ss << "_types[" << idx << "].E";
-			checkgrad.add(&(_types[idx].E), ss.str());
-		}
 		checkgrad.add(&(_tanh1_project.W), "_tan1_project.W");
 		checkgrad.add(&(_tanh1_project.b), "_tan1_project.b");
 

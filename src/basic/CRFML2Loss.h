@@ -57,6 +57,10 @@ public:
 		assert(x.size() > 0);
 		vector<vector<dtype> > canswer;
 		int seq_size = answer.size();
+		for (int idx = 0; idx < seq_size; idx++){
+			x[idx]->lossed = true;
+			cx[idx]->lossed = true;
+		}
 		canswer.resize(answer.size());
 		static int clabel;
 		for (int idx = 0; idx < seq_size; idx++){
@@ -100,7 +104,7 @@ public:
 				// can be changed with probabilities in future work
 				clabeli = f2c[i];
 				if (idx == 0) {
-					maxScores[idx][i] = lambda * x[idx]->val(i, 0) + (1 - lambda) * cx[idx]->val(clabeli, 0);
+					maxScores[idx][i] = lambda * x[idx]->val[i] + (1 - lambda) * cx[idx]->val[clabeli];
 					maxLastLabels[idx][i] = -1;
 				}
 				else {
@@ -108,7 +112,7 @@ public:
 					dtype maxscore = 0.0;
 					for (int j = 0; j < labelSize; ++j) {
 						clabelj = f2c[j];
-						dtype curscore = lambda * (T.val(j, i) + x[idx]->val(i, 0)) + (1 - lambda) * (CT.val(clabelj, clabeli) + cx[idx]->val(clabeli, 0)) + maxScores[idx - 1][j];
+						dtype curscore = lambda * (T.val[j][i] + x[idx]->val[i]) + (1 - lambda) * (CT.val[clabelj][clabeli] + cx[idx]->val[clabeli]) + maxScores[idx - 1][j];
 						if (maxLastLabel == -1 || curscore > maxscore) {
 							maxLastLabel = j;
 							maxscore = curscore;
@@ -171,9 +175,7 @@ protected:
 		}
 		int seq_size = x.size();
 		for (int idx = 0; idx < seq_size; idx++){
-			if (x[idx]->loss.size() == 0){
-				x[idx]->loss = Mat::Zero(labelSize, 1);
-			}
+			x[idx]->lossed = true;
 		}
 		
 		buffer.resize(labelSize);
@@ -186,17 +188,17 @@ protected:
 			for (int i = 0; i < labelSize; ++i) {
 				// can be changed with probabilities in future work
 				if (idx == 0) {
-					alpha[idx][i] = x[idx]->val(i, 0);
-					alpha_answer[idx][i] = x[idx]->val(i, 0) + log(answer[idx][i] + eps);
+					alpha[idx][i] = x[idx]->val[i];
+					alpha_answer[idx][i] = x[idx]->val[i] + log(answer[idx][i] + eps);
 				}
 				else {
 					for (int j = 0; j < labelSize; ++j) {
-						buffer[j] = T.val(j, i) + x[idx]->val(i, 0) + alpha[idx - 1][j];
+						buffer[j] = T.val[j][i] + x[idx]->val[i] + alpha[idx - 1][j];
 					}
 					alpha[idx][i] = logsumexp(buffer);
 
 					for (int j = 0; j < labelSize; ++j) {
-						buffer[j] = T.val(j, i) + x[idx]->val(i, 0) + alpha_answer[idx - 1][j];
+						buffer[j] = T.val[j][i] + x[idx]->val[i] + alpha_answer[idx - 1][j];
 					}
 					alpha_answer[idx][i] = logsumexp(buffer) + log(answer[idx][i] + eps);
 				}
@@ -227,12 +229,12 @@ protected:
 				}
 				else {
 					for (int j = 0; j < labelSize; ++j) {
-						buffer[j] = T.val(i, j) + x[idx + 1]->val(j, 0) + belta[idx + 1][j];
+						buffer[j] = T.val[i][j] + x[idx + 1]->val[j] + belta[idx + 1][j];
 					}
 					belta[idx][i] = logsumexp(buffer);
 
 					for (int j = 0; j < labelSize; ++j) {
-						buffer[j] = T.val(i, j) + x[idx + 1]->val(j, 0) + belta_answer[idx + 1][j];
+						buffer[j] = T.val[i][j] + x[idx + 1]->val[j] + belta_answer[idx + 1][j];
 					}
 					belta_answer[idx][i] = logsumexp(buffer) + log(answer[idx][i] + eps);
 				}
@@ -251,9 +253,9 @@ protected:
 				margin_answer[idx][i] = exp(alpha_answer[idx][i] + belta_answer[idx][i] - logZ_answer);
 				if (idx > 0) {
 					for (int j = 0; j < labelSize; ++j) {
-						dtype logvalue = alpha[idx - 1][j] + x[idx]->val(i, 0) + T.val(j, i) + belta[idx][i] - logZ;
+						dtype logvalue = alpha[idx - 1][j] + x[idx]->val[i] + T.val[j][i] + belta[idx][i] - logZ;
 						trans[j][i] += exp(logvalue);
-						logvalue = alpha_answer[idx - 1][j] + x[idx]->val(i, 0) + T.val(j, i) + belta_answer[idx][i] - logZ_answer;
+						logvalue = alpha_answer[idx - 1][j] + x[idx]->val[i] + T.val[j][i] + belta_answer[idx][i] - logZ_answer;
 						trans_answer[j][i] += exp(logvalue);
 					}
 				}
@@ -269,7 +271,7 @@ protected:
 		//compute transition matrix losses
 		for (int i = 0; i < labelSize; ++i) {
 			for (int j = 0; j < labelSize; ++j) {
-				T.grad(i, j) += (trans[i][j] - trans_answer[i][j]) * lambda / batchsize;
+				T.grad[i][j] += (trans[i][j] - trans_answer[i][j]) * lambda / batchsize;
 			}
 		}
 
@@ -279,7 +281,7 @@ protected:
 		for (int idx = 0; idx < seq_size; idx++) {
 			int bestid = -1, bestid_answer = -1;
 			for (int i = 0; i < labelSize; ++i) {
-				x[idx]->loss(i, 0) = (margin[idx][i] - margin_answer[idx][i]) * lambda / batchsize;
+				x[idx]->loss[i] = (margin[idx][i] - margin_answer[idx][i]) * lambda / batchsize;
 				if (bestid == -1 || margin[idx][i] > margin[idx][bestid]) {
 					bestid = i;
 				}
@@ -308,9 +310,7 @@ protected:
 		}
 		int seq_size = x.size();
 		for (int idx = 0; idx < seq_size; idx++){
-			if (x[idx]->loss.size() == 0){
-				x[idx]->loss = Mat::Zero(clabelSize, 1);
-			}
+			x[idx]->lossed = true;
 		}
 		
 		buffer.resize(clabelSize);
@@ -323,17 +323,17 @@ protected:
 			for (int i = 0; i < clabelSize; ++i) {
 				// can be changed with probabilities in future work
 				if (idx == 0) {
-					alpha[idx][i] = x[idx]->val(i, 0);
-					alpha_answer[idx][i] = x[idx]->val(i, 0) + log(answer[idx][i] + eps);
+					alpha[idx][i] = x[idx]->val[i];
+					alpha_answer[idx][i] = x[idx]->val[i] + log(answer[idx][i] + eps);
 				}
 				else {
 					for (int j = 0; j < clabelSize; ++j) {
-						buffer[j] = CT.val(j, i) + x[idx]->val(i, 0) + alpha[idx - 1][j];
+						buffer[j] = CT.val[j][i] + x[idx]->val[i] + alpha[idx - 1][j];
 					}
 					alpha[idx][i] = logsumexp(buffer);
 
 					for (int j = 0; j < clabelSize; ++j) {
-						buffer[j] = CT.val(j, i) + x[idx]->val(i, 0) + alpha_answer[idx - 1][j];
+						buffer[j] = CT.val[j][i] + x[idx]->val[i] + alpha_answer[idx - 1][j];
 					}
 					alpha_answer[idx][i] = logsumexp(buffer) + log(answer[idx][i] + eps);
 				}
@@ -364,12 +364,12 @@ protected:
 				}
 				else {
 					for (int j = 0; j < clabelSize; ++j) {
-						buffer[j] = CT.val(i, j) + x[idx + 1]->val(j, 0) + belta[idx + 1][j];
+						buffer[j] = CT.val[i][j] + x[idx + 1]->val[j] + belta[idx + 1][j];
 					}
 					belta[idx][i] = logsumexp(buffer);
 
 					for (int j = 0; j < clabelSize; ++j) {
-						buffer[j] = CT.val(i, j) + x[idx + 1]->val(j, 0) + belta_answer[idx + 1][j];
+						buffer[j] = CT.val[i][j] + x[idx + 1]->val[j] + belta_answer[idx + 1][j];
 					}
 					belta_answer[idx][i] = logsumexp(buffer) + log(answer[idx][i] + eps);
 				}
@@ -388,9 +388,9 @@ protected:
 				margin_answer[idx][i] = exp(alpha_answer[idx][i] + belta_answer[idx][i] - logZ_answer);
 				if (idx > 0) {
 					for (int j = 0; j < clabelSize; ++j) {
-						dtype logvalue = alpha[idx - 1][j] + x[idx]->val(i, 0) + CT.val(j, i) + belta[idx][i] - logZ;
+						dtype logvalue = alpha[idx - 1][j] + x[idx]->val[i] + CT.val[j][i] + belta[idx][i] - logZ;
 						trans[j][i] += exp(logvalue);
-						logvalue = alpha_answer[idx - 1][j] + x[idx]->val(i, 0) + CT.val(j, i) + belta_answer[idx][i] - logZ_answer;
+						logvalue = alpha_answer[idx - 1][j] + x[idx]->val[i] + CT.val[j][i] + belta_answer[idx][i] - logZ_answer;
 						trans_answer[j][i] += exp(logvalue);
 					}
 				}
@@ -406,7 +406,7 @@ protected:
 		//compute transition matrix losses
 		for (int i = 0; i < clabelSize; ++i) {
 			for (int j = 0; j < clabelSize; ++j) {
-				CT.grad(i, j) += (trans[i][j] - trans_answer[i][j]) * (1 - lambda) / batchsize;
+				CT.grad[i][j] += (trans[i][j] - trans_answer[i][j]) * (1 - lambda) / batchsize;
 			}
 		}
 
@@ -416,7 +416,7 @@ protected:
 		for (int idx = 0; idx < seq_size; idx++) {
 			int bestid = -1, bestid_answer = -1;
 			for (int i = 0; i < clabelSize; ++i) {
-				x[idx]->loss(i, 0) = (margin[idx][i] - margin_answer[idx][i]) * (1 - lambda) / batchsize;
+				x[idx]->loss[i] = (margin[idx][i] - margin_answer[idx][i]) * (1 - lambda) / batchsize;
 				if (bestid == -1 || margin[idx][i] > margin[idx][bestid]) {
 					bestid = i;
 				}
@@ -456,17 +456,17 @@ inline dtype fcost(const vector<PNode>& x, const vector<vector<dtype> >&answer, 
 			for (int i = 0; i < labelSize; ++i) {
 				// can be changed with probabilities in future work
 				if (idx == 0) {
-					alpha[idx][i] = x[idx]->val(i, 0);
-					alpha_answer[idx][i] = x[idx]->val(i, 0) + log(answer[idx][i] + eps);
+					alpha[idx][i] = x[idx]->val[i];
+					alpha_answer[idx][i] = x[idx]->val[i] + log(answer[idx][i] + eps);
 				}
 				else {
 					for (int j = 0; j < labelSize; ++j) {
-						buffer[j] = T.val(j, i) + x[idx]->val(i, 0) + alpha[idx - 1][j];
+						buffer[j] = T.val[j][i] + x[idx]->val[i] + alpha[idx - 1][j];
 					}
 					alpha[idx][i] = logsumexp(buffer);
 
 					for (int j = 0; j < labelSize; ++j) {
-						buffer[j] = T.val(j, i) + x[idx]->val(i, 0) + alpha_answer[idx - 1][j];
+						buffer[j] = T.val[j][i] + x[idx]->val[i] + alpha_answer[idx - 1][j];
 					}
 					alpha_answer[idx][i] = logsumexp(buffer) + log(answer[idx][i] + eps);
 				}
@@ -499,6 +499,8 @@ inline dtype fcost(const vector<PNode>& x, const vector<vector<dtype> >&answer, 
 				
 		buffer.resize(clabelSize);
 		int seq_size = x.size();
+		for (int idx = 0; idx < seq_size; idx++)
+			x[idx]->lossed = true;
 
 		// comute alpha values
 		NRMat<dtype> alpha(seq_size, clabelSize);
@@ -508,17 +510,17 @@ inline dtype fcost(const vector<PNode>& x, const vector<vector<dtype> >&answer, 
 			for (int i = 0; i < clabelSize; ++i) {
 				// can be changed with probabilities in future work
 				if (idx == 0) {
-					alpha[idx][i] = x[idx]->val(i, 0);
-					alpha_answer[idx][i] = x[idx]->val(i, 0) + log(answer[idx][i] + eps);
+					alpha[idx][i] = x[idx]->val[i];
+					alpha_answer[idx][i] = x[idx]->val[i] + log(answer[idx][i] + eps);
 				}
 				else {
 					for (int j = 0; j < clabelSize; ++j) {
-						buffer[j] = CT.val(j, i) + x[idx]->val(i, 0) + alpha[idx - 1][j];
+						buffer[j] = CT.val[j][i] + x[idx]->val[i] + alpha[idx - 1][j];
 					}
 					alpha[idx][i] = logsumexp(buffer);
 
 					for (int j = 0; j < clabelSize; ++j) {
-						buffer[j] = CT.val(j, i) + x[idx]->val(i, 0) + alpha_answer[idx - 1][j];
+						buffer[j] = CT.val[j][i] + x[idx]->val[i] + alpha_answer[idx - 1][j];
 					}
 					alpha_answer[idx][i] = logsumexp(buffer) + log(answer[idx][i] + eps);
 				}
